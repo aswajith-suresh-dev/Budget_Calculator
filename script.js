@@ -105,159 +105,72 @@ function getBalance() {
   return getTotalIncome() - getTotalExpenses();
 }
 function updateSummary() {
-  const incomeElement = document.getElementById("totalIncome");
-  const expensesElement = document.getElementById("totalExpenses");
-  const balanceElement = document.getElementById("netBalance");
+    const elements = [
+        document.getElementById("totalIncome"),
+        document.getElementById("totalExpenses"),
+        document.getElementById("netBalance")
+    ];
 
-  // Run only when the summary cards exist
-  if (!incomeElement || !expensesElement || !balanceElement) {
-    return;
-  }
+    if (elements.includes(null)) return;
 
-  incomeElement.textContent = getTotalIncome().toLocaleString("en-IN", {
-    style: "currency",
-    currency: "INR",
-    minimumFractionDigits: 2,
-  });
+    const amounts = [getTotalIncome(), getTotalExpenses(), getBalance()];
 
-  expensesElement.textContent = getTotalExpenses().toLocaleString("en-IN", {
-    style: "currency",
-    currency: "INR",
-    minimumFractionDigits: 2,
-  });
-
-  balanceElement.textContent = getBalance().toLocaleString("en-IN", {
-    style: "currency",
-    currency: "INR",
-    minimumFractionDigits: 2,
-  });
+    elements.forEach((element, index) => {
+        element.textContent = amounts[index].toLocaleString("en-IN", {
+            style: "currency",
+            currency: "INR"
+        });
+    });
 }
+
+
 function renderTransactionHistory() {
-  const historyBody = document.getElementById("transactionHistory");
-  const emptyHistory = document.getElementById("emptyHistory");
+    const historyBody = document.getElementById("transactionHistory");
+    const emptyHistory = document.getElementById("emptyHistory");
 
-  if (!historyBody || !emptyHistory) return;
+    if (!historyBody || !emptyHistory) return;
 
-  historyBody.innerHTML = "";
+    historyBody.innerHTML = "";
 
-  const history = getTransactions()
-    .slice()
-    .sort((a, b) => {
-      return new Date(b.date) - new Date(a.date) || b.id - a.id;
-    });
+    const history = getTransactions().slice().sort((a, b) => 
+        new Date(b.date) - new Date(a.date)
+    );
 
-  if (history.length === 0) {
-    emptyHistory.classList.remove("hidden");
-    return;
-  }
-
-  emptyHistory.classList.add("hidden");
-
-  history.forEach((transaction) => {
-    const row = document.createElement("tr");
-
-    row.className = "border-b border-slate-100 text-sm text-slate-700";
-
-    const formattedDate = new Date(
-      transaction.date + "T00:00:00",
-    ).toLocaleDateString("en-IN");
-
-    const formattedAmount = transaction.amount.toLocaleString("en-IN", {
-      style: "currency",
-      currency: "INR",
-      minimumFractionDigits: 2,
-    });
-
-    row.innerHTML = `
-        <td class="px-4 py-4">${formattedDate}</td>
-        <td class="px-4 py-4">${transaction.category}</td>
-        <td class="px-4 py-4">
-            <span class="${
-              transaction.type === "income"
-                ? "bg-green-100 text-green-700"
-                : "bg-red-100 text-red-700"
-            } rounded-full px-3 py-1 text-xs font-medium">
-                ${transaction.type === "income" ? "Income" : "Expense"}
-            </span>
-        </td>
-        <td class="px-4 py-4 text-right font-medium ${
-          transaction.type === "income" ? "text-green-600" : "text-red-600"
-        }">
-            ${transaction.type === "expense" ? "-" : "+"}${formattedAmount}
-        </td>
-        <td class="px-4 py-4 text-center whitespace-nowrap">
-            <button
-                type="button"
-                data-action="edit"
-                data-id="${transaction.id}"
-                class="mr-2 font-medium text-blue-600 hover:text-blue-800">
-                Edit
-            </button>
-
-            <button
-                type="button"
-                data-action="delete"
-                data-id="${transaction.id}"
-                class="font-medium text-red-600 hover:text-red-800">
-                Delete
-            </button>
-        </td>
-    `;
-
-    historyBody.appendChild(row);
-  });
-}
-const historyBody = document.getElementById("transactionHistory");
-
-if (historyBody) {
-  historyBody.addEventListener("click", (event) => {
-    const button = event.target.closest("button[data-action]");
-
-    if (!button) return;
-
-    const id = Number(button.dataset.id);
-    const action = button.dataset.action;
-
-    if (action === "delete") {
-      const confirmed = confirm(
-        "Are you sure you want to delete this transaction?",
-      );
-
-      if (!confirmed) return;
-
-      deleteTransaction(id);
-      renderTransactionHistory();
-    }
-
-    if (action === "edit") {
-      const transaction = getTransactions().find((item) => item.id === id);
-
-      if (!transaction) return;
-
-      const newAmountText = prompt(
-        "Enter the new amount:",
-        String(transaction.amount),
-      );
-
-      if (newAmountText === null) return;
-
-      const amountText = newAmountText.trim();
-
-      if (!/^\d+(\.\d{1,2})?$/.test(amountText) || Number(amountText) <= 0) {
-        alert(
-          "Please enter a valid amount greater than zero, with up to two decimal places.",
-        );
+    if (history.length === 0) {
+        emptyHistory.classList.remove("hidden");
         return;
-      }
-
-      const newAmount = Number(amountText);
-
-      editTransaction(id, { amount: newAmount });
-
-      renderTransactionHistory();
     }
-  });
+
+    emptyHistory.classList.add("hidden");
+
+    history.forEach(transaction => {
+        const row = document.createElement("tr");
+
+        const date = new Date(transaction.date + "T00:00:00")
+            .toLocaleDateString("en-IN");
+
+        const amount = transaction.amount.toLocaleString("en-IN", {
+            style: "currency",
+            currency: "INR"
+        });
+
+        row.innerHTML = `
+            <td class="px-4 py-4">${date}</td>
+            <td class="px-4 py-4">${transaction.category}</td>
+            <td class="px-4 py-4">${transaction.type}</td>
+            <td class="px-4 py-4">
+                ${transaction.type === "expense" ? "-" : "+"}${amount}
+            </td>
+            <td class="px-4 py-4">
+                <button onclick="handleEdit(${transaction.id})">Edit</button>
+                <button onclick="handleDelete(${transaction.id})">Delete</button>
+            </td>
+        `;
+
+        historyBody.appendChild(row);
+    });
 }
+
 
 function getTransactions() {
   return transactions;
@@ -405,7 +318,6 @@ const transactionDateInput = document.getElementById("transactionDate");
 const addTransactionBtn = document.getElementById("addTransactionBtn");
 const transactionMessage = document.getElementById("transactionMessage");
 
-// Run only on the dashboard page
 if (
   transactionTypeInput &&
   transactionCategoryInput &&
